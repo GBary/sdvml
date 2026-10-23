@@ -23,7 +23,7 @@ It uses only the standard library and runs on the `python3` that ships with macO
 ## Setup
 
 ```sh
-git clone <this repo> && cd Stardew
+git clone https://github.com/GBary/sdvml.git && cd sdvml
 ln -s "$PWD/bin/sdvml" /usr/local/bin/sdvml   # or: pip3 install --user .
 sdvml doctor           # finds Steam/GOG/App Store installs automatically
 sdvml install-smapi    # if SMAPI isn't installed yet (runs the official installer)
