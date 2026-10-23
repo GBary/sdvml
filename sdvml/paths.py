@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import re
 from pathlib import Path
 from typing import Iterator, Optional
@@ -23,6 +24,22 @@ _GAME_CANDIDATES = [
 ]
 
 _GAME_MARKERS = ("Stardew Valley.dll", "StardewValley.dll", "Stardew Valley.deps.json")
+
+# Stardew Valley 1.6 and SMAPI 4 run on .NET 6, which supports macOS 10.15 (Catalina) and newer.
+MIN_MACOS = (10, 15)
+
+
+def macos_version() -> Optional[tuple[int, ...]]:
+    """The running macOS version, or None when not on macOS. Python builds made with old SDKs
+    report Big Sur and newer as "10.16", which still compares correctly against MIN_MACOS."""
+    release = platform.mac_ver()[0]
+    if not release:
+        return None
+    return tuple(int(p) for p in re.findall(r"\d+", release))
+
+
+def macos_supported(version: Optional[tuple[int, ...]]) -> bool:
+    return version is not None and version >= MIN_MACOS
 
 
 def config_path() -> Path:

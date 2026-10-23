@@ -327,6 +327,17 @@ class OverlayTests(Base):
         self.assertEqual(self.profile.check(), [])
 
 
+class MacOSVersionTests(unittest.TestCase):
+    def test_version_check(self):
+        from unittest import mock
+        from sdvml import paths
+        cases = {"26.6.2": True, "10.15.7": True, "10.16": True, "11.0": True,
+                 "10.14.6": False, "10.13": False, "": False}
+        for release, ok in cases.items():
+            with mock.patch("platform.mac_ver", return_value=(release, ("", "", ""), "")):
+                self.assertEqual(paths.macos_supported(paths.macos_version()), ok, release)
+
+
 class DeployTests(Base):
     def test_deploy_and_undeploy(self):
         game = self.tmp / "game"

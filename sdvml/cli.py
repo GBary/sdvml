@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import platform
 import subprocess
 import sys
 from pathlib import Path
@@ -12,8 +13,8 @@ from . import __version__, launcher, nexus, nxm_handler
 from .archives import ArchiveError
 from .fomod import FomodError
 from .importer import Importer
-from .paths import APP_DIR, downloads_dirs, find_game_dir, is_game_dir, load_config, \
-    normalize_game_dir, save_config, smapi_executable
+from .paths import APP_DIR, MIN_MACOS, downloads_dirs, find_game_dir, is_game_dir, load_config, \
+    macos_supported, macos_version, normalize_game_dir, save_config, smapi_executable
 from .profile import DEFAULT_PROFILE, InstallError, Profile
 from .vortex import CollectionMod, DownloadIndex
 
@@ -32,6 +33,15 @@ def _game_dir() -> Path:
 def cmd_doctor(args) -> int:
     game = find_game_dir()
     print(f"sdvml {__version__}")
+    version = macos_version()
+    minimum = ".".join(map(str, MIN_MACOS))
+    if version is None:
+        print(f"macOS:         NOT macOS ({platform.system()}); sdvml only supports macOS")
+    elif macos_supported(version):
+        print(f"macOS:         {'.'.join(map(str, version))} (ok)")
+    else:
+        print(f"macOS:         {'.'.join(map(str, version))} - TOO OLD: Stardew Valley 1.6 and SMAPI 4 "
+              f"need macOS {minimum} (Catalina) or newer")
     print(f"Data folder:   {APP_DIR}")
     print(f"Game folder:   {game or 'NOT FOUND (use `sdvml set-game`)'}")
     if game:
@@ -42,7 +52,7 @@ def cmd_doctor(args) -> int:
     print(f"Profile:       {profile.name} ({len(profile.groups())} mods)")
     print(f"Downloads:     {', '.join(str(d) for d in downloads_dirs()) or '(none)'}")
     print(f"Nexus API key: {'set' if nexus.NexusClient().api_key or load_config().get('nexus_api_key') else 'not set (optional)'}")
-    return 0
+    return 0 if macos_supported(version) else 1
 
 
 def cmd_set_game(args) -> int:
