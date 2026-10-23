@@ -1,0 +1,5 @@
+#!/bin/sh
+# Run sdvml from a checkout without installing it (works when symlinked onto PATH).
+SELF="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0")"
+ROOT="$(dirname "$(dirname "$SELF")")"
+PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m sdvml "$@"
