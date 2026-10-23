@@ -47,8 +47,10 @@ If the game isn't found, run `sdvml set-game "/path/to/Stardew Valley.app"`.
 4. Run `sdvml launch`.
 
 **Nexus Premium:** run `sdvml set-key <api key>`, and every mod downloads automatically.
-**Free accounts:** click **Mod Manager Download** on Nexus, copy the `nxm://` link, and run
-`sdvml nxm '<link>'`.
+**Free accounts:** run `sdvml register-nxm` once, so **Mod Manager Download** links on Nexus
+download straight into sdvml. Then `sdvml open-missing` opens the download pages ten at a time;
+click **Slow download** on each and re-run the import. Without the handler, copy an `nxm://`
+link and run `sdvml nxm '<link>'`.
 
 ## Other kinds of packs
 
@@ -56,7 +58,11 @@ If the game isn't found, run `sdvml set-game "/path/to/Stardew Valley.app"`.
 sdvml import "Vortex mods.zip"        # zipped staging or downloads folder from a Windows PC
 sdvml import ~/Desktop/Mods           # a copied Windows "Stardew Valley/Mods" folder
 sdvml import SomeMod-1234-1-0-0.zip   # a single mod, FOMOD or not
+sdvml add https://www.nexusmods.com/stardewvalley/mods/29049   # one mod straight from Nexus
 ```
+
+`sdvml add` takes a Nexus mod URL or ID and installs its main file (or `--file <id>`).
+It downloads automatically with Premium; otherwise it prints the download link.
 
 ## Managing mods
 

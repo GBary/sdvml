@@ -114,6 +114,28 @@ class Importer:
         self.log(f"Downloading collection {slug} revision {rev}...")
         return nexus.download(url, target.parent, target.name)
 
+    def add_nexus_mod(self, mod_id: int, file_id: Optional[int] = None) -> ImportResult:
+        """Install one mod from Nexus (its main file unless file_id is given)."""
+        client = self.client or nexus.NexusClient()
+        name = client.mod_info(mod_id).get("name") or f"Nexus mod {mod_id}"
+        file = client.file_info(mod_id, file_id) if file_id else client.main_file(mod_id)
+        mod = CollectionMod(name=name, version=str(file.get("version") or ""), mod_id=mod_id,
+                            file_id=int(file["file_id"]), file_name=file.get("file_name"))
+        self.log(f"{name} {mod.version} ({file.get('name')})")
+        if self._already_installed(mod):
+            self.result.skipped.append(f"{name} {mod.version}: already installed")
+            return self.result
+        self.profile.create()
+        with tempfile.TemporaryDirectory(dir=APP_DIR / "tmp") as tmp:
+            location = self._locate(mod, None, DownloadIndex(self.downloads))
+            if location is None:
+                self.result.missing.append(mod)
+            else:
+                self._install_archive(location, name, {"source": location.name, "mod_id": mod_id,
+                                                       "file_id": mod.file_id, "version": mod.version}, Path(tmp))
+        self._apply_overlays()
+        return self.result
+
     def _import_public_collection(self, slug: str, revision: Optional[int]) -> ImportResult:
         client = self.client or nexus.NexusClient()
         rev = client.collection_mod_list(slug, revision)
@@ -215,7 +237,7 @@ class Importer:
         # Bundled/direct mods have no Nexus file id; compare the recorded version instead.
         return bool(mod.version) and entry.get("version") == mod.version
 
-    def _locate(self, mod: CollectionMod, collection: Collection, index: DownloadIndex) -> Optional[Path]:
+    def _locate(self, mod: CollectionMod, collection: Optional[Collection], index: DownloadIndex) -> Optional[Path]:
         if mod.source_type == "bundle":
             return collection.bundled_path(mod)
         found = index.match(mod)

@@ -43,6 +43,18 @@ def parse_nxm(link: str) -> dict:
             "key": query.get("key"), "expires": query.get("expires")}
 
 
+def parse_mod_ref(text: str) -> tuple[int, Optional[int]]:
+    """Accept a Nexus mod page URL (optionally with file_id=...) or a bare mod ID."""
+    text = text.strip()
+    if text.isdigit():
+        return int(text), None
+    match = re.search(r"/mods/(\d+)", text)
+    if not match:
+        raise NexusError(f"not a Nexus mod URL or ID: {text}")
+    file_match = re.search(r"[?&]file_id=(\d+)", text)
+    return int(match.group(1)), int(file_match.group(1)) if file_match else None
+
+
 def parse_collection_url(url: str) -> Optional[tuple[str, Optional[int]]]:
     """Return (slug, revision) for a Nexus collection URL."""
     match = re.search(r"/collections/([a-z0-9]+)(?:/revisions/(\d+))?", url)
@@ -83,6 +95,19 @@ class NexusClient:
 
     def validate(self) -> dict:
         return self._request(f"{API}/v1/users/validate.json")
+
+    def mod_info(self, mod_id: int, game: str = GAME) -> dict:
+        return self._request(f"{API}/v1/games/{game}/mods/{mod_id}.json")
+
+    def main_file(self, mod_id: int, game: str = GAME) -> dict:
+        """The file a mod manager would pick: the primary file, else the newest MAIN file."""
+        files = self._request(f"{API}/v1/games/{game}/mods/{mod_id}/files.json").get("files", [])
+        primary = [f for f in files if f.get("is_primary")]
+        main = sorted((f for f in files if f.get("category_name") == "MAIN"),
+                      key=lambda f: f.get("uploaded_timestamp") or 0)
+        if not (primary or main):
+            raise NexusError(f"mod {mod_id} has no main file; pass a file_id from its Files tab")
+        return primary[0] if primary else main[-1]
 
     def file_info(self, mod_id: int, file_id: int, game: str = GAME) -> dict:
         return self._request(f"{API}/v1/games/{game}/mods/{mod_id}/files/{file_id}.json")

@@ -132,6 +132,25 @@ def cmd_register_nxm(args) -> int:
     return 0
 
 
+def cmd_add(args) -> int:
+    profile = _profile(args)
+    mod_id, file_id = nexus.parse_mod_ref(args.mod)
+    downloads = [Path(d).expanduser() for d in args.downloads] + downloads_dirs()
+    importer = Importer(profile, downloads, _client(args), interactive=args.interactive, reinstall=args.reinstall)
+    result = importer.add_nexus_mod(mod_id, args.file or file_id)
+    for line in result.skipped:
+        print(f"skipped: {line}")
+    for mod in result.missing:
+        print(f"\nCouldn't download it automatically (needs Nexus Premium). Download it here, then re-run:\n"
+              f"  {nexus.manager_download_url(mod.mod_id, mod.file_id, mod.domain)}")
+    problems = profile.check()
+    if problems:
+        print("\nProblems SMAPI will report:")
+        for p in problems:
+            print(f"  - {p}")
+    return 1 if result.failed or result.missing else 0
+
+
 def cmd_open_missing(args) -> int:
     profile = _profile(args)
     try:
@@ -273,6 +292,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--skip-optional", action="store_true", help="skip mods the collection marks optional")
     p.add_argument("--reinstall", action="store_true", help="reinstall mods that are already installed")
     p.set_defaults(func=cmd_import)
+
+    p = sub.add_parser("add", help="install a single mod from Nexus by URL or mod ID")
+    p.add_argument("mod", help="e.g. https://www.nexusmods.com/stardewvalley/mods/1915 or 1915")
+    p.add_argument("--file", type=int, help="specific file ID (default: the mod's main file)")
+    p.add_argument("-d", "--downloads", action="append", default=[])
+    p.add_argument("--nexus-key")
+    p.add_argument("-i", "--interactive", action="store_true", help="choose FOMOD options")
+    p.add_argument("--reinstall", action="store_true")
+    p.set_defaults(func=cmd_add)
 
     p = sub.add_parser("nxm", help="download a file from a Nexus 'Mod Manager Download' nxm:// link")
     p.add_argument("link")
